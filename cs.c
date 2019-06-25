@@ -817,7 +817,7 @@ static void skipdata_opstr(char *opstr, const uint8_t *buffer, size_t size)
 #endif
 
 
-/* Weijie: add my own debugging output function */
+/* Weijie: add my own debugging output function for later use */
 void PrintDebugInfoInCS(void (*pPrintDebugInfoOutside)(void))
 {
 	//Weijie: test whether an user's C file can be used by a static lib
@@ -1082,11 +1082,6 @@ size_t CAPSTONE_API cs_disasm_dbg(csh ud, const uint8_t *buffer, size_t size, ui
 	size_org = size;
 
 	total_size = sizeof(cs_insn) * cache_size;
-	
-	
-        //Weijie: first insertion
-        pPrint();
-
 
 	total = cs_mem_malloc(total_size);
 	if (total == NULL) {
@@ -1096,11 +1091,6 @@ size_t CAPSTONE_API cs_disasm_dbg(csh ud, const uint8_t *buffer, size_t size, ui
 	}
 
 	insn_cache = total;
-
-
-        //Weijie: second insertion
-        pPrint();
-
 
 	while (size > 0) {
 		MCInst_Init(&mci);
@@ -1124,8 +1114,15 @@ size_t CAPSTONE_API cs_disasm_dbg(csh ud, const uint8_t *buffer, size_t size, ui
 		mci.flat_insn->mnemonic[0] = '\0';
 		mci.flat_insn->op_str[0] = '\0';
 #endif
+		
+		//Weijie: print in while1
+		pPrint();
 
 		r = handle->disasm(ud, buffer, size, &mci, &insn_size, offset, handle->getinsn_info);
+
+		//Weijie: print in while2
+		pPrint();
+		
 		if (r) {
 			SStream ss;
 			SStream_Init(&ss);
@@ -1228,11 +1225,6 @@ size_t CAPSTONE_API cs_disasm_dbg(csh ud, const uint8_t *buffer, size_t size, ui
 		size -= next_offset;
 		offset += next_offset;
 	}
-
-
-        //Weijie: third insertion
-        pPrint();
-
 
 	if (!c) {
 		// we did not disassemble any instruction
