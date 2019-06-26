@@ -21,7 +21,11 @@ cs_err X86_global_init(cs_struct *ud)
 	ud->printer = X86_Intel_printInst;
 	ud->syntax = CS_OPT_SYNTAX_INTEL;
 	ud->printer_info = mri;
-	ud->disasm = X86_getInstruction;
+
+	//ud->disasm = X86_getInstruction;
+	//Weijie: test
+	ud->disasm = X86_getInstruction_dbg;
+
 	ud->reg_name = X86_reg_name;
 	ud->insn_id = X86_get_insn_id;
 	ud->insn_name = X86_insn_name;

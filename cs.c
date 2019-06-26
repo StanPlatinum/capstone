@@ -824,6 +824,12 @@ void PrintDebugInfoInCS(void (*pPrintDebugInfoOutside)(void))
 	pPrintDebugInfoOutside();
 }
 
+//Weijie: make a fake pPrint for cs_disasm and cs_disasm_iter
+void fake_pPrint(void)
+{
+	//do nothing
+}
+
 // dynamicly allocate memory to contain disasm insn
 // NOTE: caller must free() the allocated memory itself to avoid memory leaking
 CAPSTONE_EXPORT
@@ -903,7 +909,10 @@ size_t CAPSTONE_API cs_disasm(csh ud, const uint8_t *buffer, size_t size, uint64
 		mci.flat_insn->op_str[0] = '\0';
 #endif
 
-		r = handle->disasm(ud, buffer, size, &mci, &insn_size, offset, handle->getinsn_info);
+		/* Weijie: for debugging, must change the function calling method... */
+		//r = handle->disasm(ud, buffer, size, &mci, &insn_size, offset, handle->getinsn_info);
+		r = handle->disasm(ud, buffer, size, &mci, &insn_size, offset, handle->getinsn_info, fake_pPrint);
+
 		if (r) {
 			SStream ss;
 			SStream_Init(&ss);
@@ -1117,11 +1126,13 @@ size_t CAPSTONE_API cs_disasm_dbg(csh ud, const uint8_t *buffer, size_t size, ui
 		
 		//Weijie: print in while1
 		pPrint();
+		/* trace it into X86_getInstruction_dgb */
+		/* still passing pPrint */
 
-		r = handle->disasm(ud, buffer, size, &mci, &insn_size, offset, handle->getinsn_info);
+		r = handle->disasm(ud, buffer, size, &mci, &insn_size, offset, handle->getinsn_info, pPrint);
 
 		//Weijie: print in while2
-		pPrint();
+		//pPrint();
 		
 		if (r) {
 			SStream ss;
@@ -1336,7 +1347,10 @@ bool CAPSTONE_API cs_disasm_iter(csh ud, const uint8_t **code, size_t *size,
 	mci.flat_insn->op_str[0] = '\0';
 #endif
 
-	r = handle->disasm(ud, *code, *size, &mci, &insn_size, *address, handle->getinsn_info);
+	//Weijie: test
+	//r = handle->disasm(ud, *code, *size, &mci, &insn_size, *address, handle->getinsn_info);
+	r = handle->disasm(ud, *code, *size, &mci, &insn_size, *address, handle->getinsn_info, fake_pPrint);
+
 	if (r) {
 		SStream ss;
 		SStream_Init(&ss);

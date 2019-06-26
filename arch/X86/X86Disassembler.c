@@ -1064,4 +1064,152 @@ bool X86_getInstruction(csh ud, const uint8_t *code, size_t code_len,
 	}
 }
 
+/* Weijie: dbg version */
+// Public interface for the disassembler
+bool X86_getInstruction_dbg(csh ud, const uint8_t *code, size_t code_len,
+		MCInst *instr, uint16_t *size, uint64_t address, void *_info, void (*pPrint)(void))
+{
+	//Weijie: first print in x86disassembler.c
+	pPrint();
+	
+	cs_struct *handle = (cs_struct *)(uintptr_t)ud;
+	InternalInstruction insn = {0};
+	struct reader_info info;
+	int ret;
+	bool result;
+
+	info.code = code;
+	info.size = code_len;
+	info.offset = address;
+
+	//Weijie: second print in x86disassembler.c
+	pPrint();
+
+	if (instr->flat_insn->detail) {
+		// instr->flat_insn->detail initialization: 3 alternatives
+
+		// 1. The whole structure, this is how it's done in other arch disassemblers
+		// Probably overkill since cs_detail is huge because of the 36 operands of ARM
+		
+		//memset(instr->flat_insn->detail, 0, sizeof(cs_detail));
+
+		// 2. Only the part relevant to x86
+		memset(instr->flat_insn->detail, 0, offsetof(cs_detail, x86) + sizeof(cs_x86));
+
+		// 3. The relevant part except for x86.operands
+		// sizeof(cs_x86) is 0x1c0, sizeof(x86.operands) is 0x180
+		// marginally faster, should be okay since x86.op_count is set to 0
+
+		//memset(instr->flat_insn->detail, 0, offsetof(cs_detail, x86)+offsetof(cs_x86, operands));
+	}
+
+	if (handle->mode & CS_MODE_16)
+		ret = decodeInstruction(&insn,
+				reader, &info,
+				address,
+				MODE_16BIT);
+	else if (handle->mode & CS_MODE_32)
+		ret = decodeInstruction(&insn,
+				reader, &info,
+				address,
+				MODE_32BIT);
+	else
+		ret = decodeInstruction(&insn,
+				reader, &info,
+				address,
+				MODE_64BIT);
+
+	if (ret) {
+		*size = (uint16_t)(insn.readerCursor - address);
+		// handle some special cases here.
+		// FIXME: fix this in the next major update.
+		switch(*size) {
+			default:
+				break;
+			case 2: {
+						unsigned char b1 = 0, b2 = 0;
+
+						reader(&info, &b1, address);
+						reader(&info, &b2, address + 1);
+						if (b1 == 0x0f && b2 == 0xff) {
+							instr->Opcode = X86_UD0;
+							instr->OpcodePub = X86_INS_UD0;
+							strncpy(instr->assembly, "ud0", 4);
+							if (instr->flat_insn->detail) {
+								instr->flat_insn->detail->x86.opcode[0] = b1;
+								instr->flat_insn->detail->x86.opcode[1] = b2;
+							}
+							return true;
+						}
+				}
+				return false;
+			case 4: {
+						if (handle->mode != CS_MODE_16) {
+							unsigned char b1 = 0, b2 = 0, b3 = 0, b4 = 0;
+
+							reader(&info, &b1, address);
+							reader(&info, &b2, address + 1);
+							reader(&info, &b3, address + 2);
+							reader(&info, &b4, address + 3);
+
+							if (b1 == 0xf3 && b2 == 0x0f && b3 == 0x1e && b4 == 0xfa) {
+								instr->Opcode = X86_ENDBR64;
+								instr->OpcodePub = X86_INS_ENDBR64;
+								strncpy(instr->assembly, "endbr64", 8);
+								if (instr->flat_insn->detail) {
+									instr->flat_insn->detail->x86.opcode[0] = b1;
+									instr->flat_insn->detail->x86.opcode[1] = b2;
+									instr->flat_insn->detail->x86.opcode[2] = b3;
+									instr->flat_insn->detail->x86.opcode[3] = b4;
+								}
+								return true;
+							} else if (b1 == 0xf3 && b2 == 0x0f && b3 == 0x1e && b4 == 0xfb) {
+								instr->Opcode = X86_ENDBR32;
+								instr->OpcodePub = X86_INS_ENDBR32;
+								strncpy(instr->assembly, "endbr32", 8);
+								if (instr->flat_insn->detail) {
+									instr->flat_insn->detail->x86.opcode[0] = b1;
+									instr->flat_insn->detail->x86.opcode[1] = b2;
+									instr->flat_insn->detail->x86.opcode[2] = b3;
+									instr->flat_insn->detail->x86.opcode[3] = b4;
+								}
+								return true;
+							}
+						}
+				}
+				return false;
+		}
+
+		return false;
+	} else {
+		*size = (uint16_t)insn.length;
+
+		result = (!translateInstruction(instr, &insn)) ?  true : false;
+		if (result) {
+			// quick fix for #904. TODO: fix this properly in the next update
+			if (handle->mode & CS_MODE_64) {
+				if (instr->Opcode == X86_LES16rm || instr->Opcode == X86_LES32rm)
+					// LES is invalid in x64
+					return false;
+				if (instr->Opcode == X86_LDS16rm || instr->Opcode == X86_LDS32rm)
+					// LDS is invalid in x64
+					return false;
+			}
+
+			instr->imm_size = insn.immSize;
+			if (handle->detail) {
+				update_pub_insn(instr->flat_insn, &insn, instr->x86_prefix);
+			} else {
+				// still copy all prefixes
+				instr->x86_prefix[0] = insn.prefix0;
+				instr->x86_prefix[1] = insn.prefix1;
+				instr->x86_prefix[2] = insn.prefix2;
+				instr->x86_prefix[3] = insn.prefix3;
+			}
+		}
+
+		return result;
+	}
+}
+
 #endif

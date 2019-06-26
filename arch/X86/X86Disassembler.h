@@ -87,6 +87,10 @@
 bool X86_getInstruction(csh handle, const uint8_t *code, size_t code_len,
 		MCInst *instr, uint16_t *size, uint64_t address, void *info);
 
+/* Weijie: test */
+bool X86_getInstruction_dbg(csh handle, const uint8_t *code, size_t code_len,
+		MCInst *instr, uint16_t *size, uint64_t address, void *info, void(*pPrint)(void));
+
 void X86_init(MCRegisterInfo *MRI);
 
 #endif
