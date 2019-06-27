@@ -1048,7 +1048,7 @@ size_t CAPSTONE_API cs_disasm(csh ud, const uint8_t *buffer, size_t size, uint64
 
 /* Weijie: add my own debugging output function */
 CAPSTONE_EXPORT
-size_t CAPSTONE_API cs_disasm_dbg(csh ud, const uint8_t *buffer, size_t size, uint64_t offset, size_t count, cs_insn **insn, void (*pPrint)(void))
+size_t CAPSTONE_API cs_disasm_dbg(csh ud, const uint8_t *buffer, size_t size, uint64_t offset, size_t count, cs_insn **insn, void (*pPrint)(void), void (pPrint2)(void))
 {
 	struct cs_struct *handle;
 	MCInst mci;
@@ -1127,9 +1127,9 @@ size_t CAPSTONE_API cs_disasm_dbg(csh ud, const uint8_t *buffer, size_t size, ui
 		//Weijie: print in while1
 		pPrint();
 		/* trace it into X86_getInstruction_dgb */
-		/* still passing pPrint */
+		/* then, passing pPrint2 */
 
-		r = handle->disasm(ud, buffer, size, &mci, &insn_size, offset, handle->getinsn_info, pPrint);
+		r = handle->disasm(ud, buffer, size, &mci, &insn_size, offset, handle->getinsn_info, pPrint2);
 
 		//Weijie: print in while2
 		//pPrint();

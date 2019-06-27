@@ -1067,10 +1067,10 @@ bool X86_getInstruction(csh ud, const uint8_t *code, size_t code_len,
 /* Weijie: dbg version */
 // Public interface for the disassembler
 bool X86_getInstruction_dbg(csh ud, const uint8_t *code, size_t code_len,
-		MCInst *instr, uint16_t *size, uint64_t address, void *_info, void (*pPrint)(void))
+		MCInst *instr, uint16_t *size, uint64_t address, void *_info, void (*pPrint2)(void))
 {
 	//Weijie: first print in x86disassembler.c
-	pPrint();
+	pPrint2();
 	
 	cs_struct *handle = (cs_struct *)(uintptr_t)ud;
 	InternalInstruction insn = {0};
@@ -1083,7 +1083,7 @@ bool X86_getInstruction_dbg(csh ud, const uint8_t *code, size_t code_len,
 	info.offset = address;
 
 	//Weijie: second print in x86disassembler.c
-	pPrint();
+	pPrint2();
 
 	if (instr->flat_insn->detail) {
 		// instr->flat_insn->detail initialization: 3 alternatives
